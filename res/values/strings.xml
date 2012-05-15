@@ -3,5 +3,7 @@
 
     <string name="hello">Hello World, MeteoappActivity!</string>
     <string name="app_name">Meteoapp</string>
+    <string name="state_prompt">Wybierz województwo</string>
+    <string name="city_prompt">Wybierz miasto</string>
 
 </resources>
