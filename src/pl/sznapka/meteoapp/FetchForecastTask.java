@@ -1,6 +1,7 @@
 package pl.sznapka.meteoapp;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -11,6 +12,7 @@ import pl.sznapka.meteo.image.ImageProcessingException;
 import pl.sznapka.meteo.image.Processor;
 import pl.sznapka.meteo.valueobject.City;
 import pl.sznapka.meteo.valueobject.Forecast;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -25,14 +27,14 @@ import android.widget.LinearLayout.LayoutParams;
 public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 
 	protected ProgressDialog progressDialog;
-	protected Context context;
+	protected WeakReference<Activity> parent;
 	protected File cacheDir;
 	protected ArrayList<String> types;
 	
-	public FetchForecastTask(Context context, File cacheDir, ArrayList<String> types) {
+	public FetchForecastTask(Activity parent, File cacheDir, ArrayList<String> types) {
 		
 		super();
-		this.context = context;
+		this.parent = new WeakReference<Activity>(parent);
 		this.cacheDir = cacheDir;
 		this.types = types;
 	}
@@ -65,7 +67,7 @@ public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 	protected void onPreExecute() {
 
 		super.onPreExecute();
-		progressDialog = new ProgressDialog(this.context);
+		progressDialog = new ProgressDialog(parent.get());
 		progressDialog.setTitle("Pobieram");
 		progressDialog.setMessage("Proszę czekać, pobieranie prognozy");
 		progressDialog.show();
@@ -73,12 +75,16 @@ public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 	
 	protected void onPostExecute(ChoosenForecast choosenForecast) {
 		
-		Intent intent = new Intent(context, ForecastActivity.class);
-		Bundle bundle = new Bundle();
-		bundle.putSerializable("choosenForecast", choosenForecast);
-     	intent.putExtras(bundle);
-
-		progressDialog.dismiss();
-        context.startActivity(intent);
+		if (parent.get().getClass() == MeteoappActivity.class) {
+			Intent intent = new Intent(parent.get(), ForecastActivity.class);
+			Bundle bundle = new Bundle();
+			bundle.putSerializable("choosenForecast", choosenForecast);
+	     	intent.putExtras(bundle);
+			progressDialog.dismiss();
+			parent.get().startActivity(intent);
+		} else if (parent.get().getClass() == ForecastActivity.class) {
+			progressDialog.dismiss();
+			((ForecastActivity) parent.get()).displayForecast(choosenForecast);
+		}
 	}
 }
