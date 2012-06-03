@@ -1,10 +1,5 @@
 package pl.sznapka.meteoapp;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,29 +10,28 @@ import pl.sznapka.meteo.http.HttpClient;
 import pl.sznapka.meteo.valueobject.City;
 import pl.sznapka.meteo.valueobject.Forecast;
 import pl.sznapka.meteo.valueobject.State;
-
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.Spinner;
-import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.Spinner;
 
 public class MeteoappActivity extends Activity {
 
 	public ArrayList<State> states;
 	public HashMap<String, ArrayList<City>> cities;
 	public ArrayList<Integer> checkboxes;
-	ProgressDialog dialog;
+	CacheManager cache;
 	
 	/** Called when the activity is first created. */
     @Override
@@ -45,12 +39,10 @@ public class MeteoappActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.form);
         
-        cities = loadCitiesFromCache();
-        dialog = new ProgressDialog(this);
-        dialog.setTitle("Pobieram");
-        
+        cache = new CacheManager(getCacheDir());
+        cities = (HashMap<String, ArrayList<City>>) cache.loadFromCache("cities");
+
         ((Spinner)findViewById(R.id.city)).setEnabled(false);
-        cities = loadCitiesFromCache();
         
         ArrayList<String> items = new ArrayList<String>();
         items.add("Wybierz województwo");
@@ -69,75 +61,20 @@ public class MeteoappActivity extends Activity {
         findViewById(R.id.buttonShowMeteo).setOnClickListener(
         		new ShowMeteoButtonListener());
         
+        ChoosenForecast choosenForecast = (ChoosenForecast) cache.loadFromCache("forecast");
+        if (choosenForecast != null) {
+        	Intent intent = new Intent(this, ForecastActivity.class);
+			Bundle bundle = new Bundle();
+			bundle.putSerializable("choosenForecast", choosenForecast);
+	     	intent.putExtras(bundle);
+			startActivity(intent);
+        }
+        
     }
     
-    protected HashMap<String, ArrayList<City>> loadCitiesFromCache() {
-    	
-    	HashMap<String, ArrayList<City>> cities = null;
-    	File cacheFile = getCacheFile("cities"); 
-    	if (cacheFile.exists()) {
-	    	FileInputStream fis = null;
-	    	ObjectInputStream ois = null;
-	    	try {
-	    		fis = new FileInputStream(cacheFile);
-	    		ois = new ObjectInputStream(fis);
-	    		cities = (HashMap<String, ArrayList<City>>) ois.readObject();
-	    		System.out.println("Got cities from cache: " + cities.keySet().toString());
-	    	} catch (Exception e) {
-	    	} finally {
-	    		try {
-	    			if (fis != null) fis.close();
-	    			if (ois != null) ois.close();
-	    		} catch (Exception e) {
-	    		}
-	    	}
-    	} else {
-    		cities = new HashMap<String, ArrayList<City>>();
-    		System.out.println("Cities does not exists in cache");
-    	}
-    	
-    	return cities;
-    }
-    
-    /**
-     * Stores in cache
-     * 
-     * @param cities
-     */
-    protected void storeCitiesInCache(HashMap<String, ArrayList<City>> cities) {
-    	
-    	FileOutputStream fos = null;
-    	ObjectOutputStream oos = null;
-    	
-    	try {
-    		fos = new FileOutputStream(getCacheFile("cities"));
-    		oos = new ObjectOutputStream(fos);
-    		oos.writeObject(cities);
-    	} catch (Exception e) {
-    	} finally {
-    		try {
-    			if (oos != null) oos.close();
-    			if (fos != null) fos.close();
-    		} catch (Exception e) {
-			}
-    	}
-    }
-    
-    protected File getCacheFile(String target) {
 
-    	String state = Environment.getExternalStorageState();
-    	if (Environment.MEDIA_MOUNTED.equals(state) && !Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-    		System.out.println("Cache dir in SD card");
-    		File dataDir = new File(Environment.getExternalStorageDirectory().getAbsoluteFile() + "/meteoApp");
-    		dataDir.mkdir();
-    		
-    		return new File(dataDir.getAbsolutePath() + "/" + target + ".dat");
-    	} else {
-    		System.out.println("Cache dir in data");
-    		
-    		return new File(getCacheDir().getAbsoluteFile() + "/" + target + ".dat");
-    	}
-	}
+    
+
 
 	/**
      * Attaches checkboxes listener
@@ -213,7 +150,7 @@ public class MeteoappActivity extends Activity {
 			ArrayList<City> citiesInState = cities.get(state.name);
 			City city = citiesInState.get(((Spinner)findViewById(R.id.city)).getSelectedItemPosition());
 			
-			new FetchForecastTask(MeteoappActivity.this, getCacheDir(), getSelectedTypes()).execute(city);
+			new FetchForecastTask(MeteoappActivity.this, getCacheDir(), getSelectedTypes(), cache).execute(city);
 		}
 		
 		protected ArrayList<String> getSelectedTypes() {
@@ -246,6 +183,7 @@ public class MeteoappActivity extends Activity {
 	private class FetchCitiesTask extends AsyncTask<State, Void, ArrayList<City>> {
 
 		protected ProgressDialog progressDialog;
+		protected FetcherException exception;
 		
 		@Override
 		protected ArrayList<City> doInBackground(State... states) {
@@ -253,16 +191,14 @@ public class MeteoappActivity extends Activity {
 			State state = states[0];
 			try {
 				if (!cities.containsKey(state.name)) {
-					System.out.println("State: " + state.name + " not found in cache");
 					CityFetcher fetcher = new CityFetcher(state, new HttpClient());
 					cities.put(state.name, fetcher.fetch());
-					storeCitiesInCache(cities);
-				} else {
-					System.out.println("Retrieving " + state.name + " from cache");
+					cache.storeObjectInCache("cities", cities);
 				}
 				return cities.get(state.name);
 			} catch (FetcherException e) {
 				System.out.println("Exception: " + e.getMessage());
+				exception = e;
 			}
 			return null;
 		}
@@ -278,17 +214,21 @@ public class MeteoappActivity extends Activity {
 		
 		protected void onPostExecute(ArrayList<City> cities) {
 
-	        ArrayList<String> items = new ArrayList<String>();
-	        for (City city : cities) {
-				items.add(city.name);
+			if (exception == null) {
+		        ArrayList<String> items = new ArrayList<String>();
+		        for (City city : cities) {
+					items.add(city.name);
+				}
+		        Spinner citiesSpinner = (Spinner)findViewById(R.id.city);
+		        ArrayAdapter<String> adapter = new ArrayAdapter<String>(MeteoappActivity.this,
+		        		android.R.layout.simple_spinner_item, items);
+		        citiesSpinner.setAdapter(adapter);
+		        ((Spinner)findViewById(R.id.city)).setEnabled(true);
+		        setButtonEnabledIfAllCriteriaSatisfied(false);
+		        
+			} else {
+				new ExceptionHandler(MeteoappActivity.this, exception).handle();
 			}
-	        Spinner citiesSpinner = (Spinner)findViewById(R.id.city);
-	        ArrayAdapter<String> adapter = new ArrayAdapter<String>(MeteoappActivity.this,
-	        		android.R.layout.simple_spinner_item, items);
-	        citiesSpinner.setAdapter(adapter);
-	        ((Spinner)findViewById(R.id.city)).setEnabled(true);
-	        setButtonEnabledIfAllCriteriaSatisfied(false);
-	        
 	        progressDialog.dismiss();
 		}
 	}

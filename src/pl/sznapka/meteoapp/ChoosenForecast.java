@@ -2,12 +2,12 @@ package pl.sznapka.meteoapp;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-
-import android.graphics.Bitmap;
-
-import pl.sznapka.meteo.valueobject.City;
 import pl.sznapka.meteo.valueobject.Forecast;
 
+/**
+ * @author wowo
+ * Forecast choosen by user
+ */
 public class ChoosenForecast implements Serializable {
 	
 	private static final long serialVersionUID = 448162750751778567L;

@@ -3,15 +3,12 @@ package pl.sznapka.meteoapp;
 import pl.sznapka.meteo.image.Processor;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.method.LinkMovementMethod;
 import android.text.util.Linkify;
-import android.view.Gravity;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -59,7 +56,8 @@ public class ForecastActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch (item.getItemId()) {
 	    	case R.id.refresh:
-	    		new FetchForecastTask(ForecastActivity.this, getCacheDir(), choosenForecast.types).execute(choosenForecast.forecast.city);
+	    		new FetchForecastTask(ForecastActivity.this, getCacheDir(),
+	    				choosenForecast.types,new CacheManager(getCacheDir())).execute(choosenForecast.forecast.city);
 	    		return true;
 	    	case R.id.form:
 	    		finish();
@@ -68,7 +66,7 @@ public class ForecastActivity extends Activity {
 	    		TextView view = new TextView(this);
 	    		SpannableString msg = new SpannableString("Wykonanie: Wojciech Sznapka\n" +
 	    				"Dane pobierane są ze strony new.meteo.pl\n\n" +
-	    				"Strona autora: http://sznapka.pl\n" +
+	    				"Strona autora: sznapka.pl\n\n" +
 	    				"Kontakt: android@sznapka.pl");
 	    		Linkify.addLinks(msg, Linkify.WEB_URLS | Linkify.EMAIL_ADDRESSES);
 	    		view.setText(msg);
