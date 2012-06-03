@@ -8,7 +8,7 @@
         android:id="@+id/textView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Wybierz miasto do prognozy"
+        android:text="Wybierz województwo"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <Spinner
@@ -16,11 +16,69 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:prompt="@string/state_prompt" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wybierz miasto dla prognozy"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
     
     <Spinner
         android:id="@+id/city"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:prompt="@string/city_prompt" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rodzaje meteogramów"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <CheckBox
+        android:id="@+id/checkBoxTemperature"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Temperatura" />
+
+    <CheckBox
+        android:id="@+id/checkBoxRain"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Opady" />
+
+    <CheckBox
+        android:id="@+id/checkBoxPressure"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Ciśnienie" />
+
+    <CheckBox
+        android:id="@+id/checkBoxWind"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Wiatr" />
+
+    <CheckBox
+        android:id="@+id/checkBoxVisibility"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Widoczność" />
+
+    <CheckBox
+        android:id="@+id/checkBoxClouds"
+        android:layout_width="wrap_content"
+        android:layout_height="34dp"
+        android:text="Zachmurzenie" />
+
+    <Button
+        android:id="@+id/buttonShowMeteo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Wyświetl prognozę" 
+        android:enabled="false"/>
 
 </LinearLayout>
