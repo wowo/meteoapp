@@ -22,16 +22,14 @@ public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 
 	protected ProgressDialog progressDialog;
 	protected WeakReference<Activity> parent;
-	protected File cacheDir;
 	protected ArrayList<String> types;
 	protected CacheManager cache;
 	protected Exception exception;
 	
-	public FetchForecastTask(Activity parent, File cacheDir, ArrayList<String> types, CacheManager cache) {
+	public FetchForecastTask(Activity parent, ArrayList<String> types, CacheManager cache) {
 		
 		super();
 		this.parent = new WeakReference<Activity>(parent);
-		this.cacheDir = cacheDir;
 		this.types = types;
 		this.cache = cache;
 	}
@@ -40,7 +38,7 @@ public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 	protected ChoosenForecast doInBackground(City... cities) {
 
 		try {
-			ForecastFetcher fetcher = new ForecastFetcher(cities[0], new HttpClient(), cacheDir);
+			ForecastFetcher fetcher = new ForecastFetcher(cities[0], new HttpClient(), cache.getDefaultCacheDir());
 			ArrayList<Forecast> result = fetcher.fetch();
 			Forecast current = result.get(0);	
 			Processor processor = new Processor();
@@ -74,6 +72,7 @@ public class FetchForecastTask extends AsyncTask<City, Void, ChoosenForecast> {
 		if (exception == null) {
 			cache.storeObjectInCache("forecast", choosenForecast);
 			if (parent.get().getClass() == MeteoappActivity.class) {
+				((MeteoappActivity) parent.get()).choosenForecast = choosenForecast;
 				Intent intent = new Intent(parent.get(), ForecastActivity.class);
 				Bundle bundle = new Bundle();
 				bundle.putSerializable("choosenForecast", choosenForecast);

@@ -32,6 +32,8 @@ public class MeteoappActivity extends Activity {
 	public HashMap<String, ArrayList<City>> cities;
 	public ArrayList<Integer> checkboxes;
 	CacheManager cache;
+	ChoosenForecast choosenForecast;
+	boolean onCreateCalled = false;
 	
 	/** Called when the activity is first created. */
     @Override
@@ -40,28 +42,17 @@ public class MeteoappActivity extends Activity {
         setContentView(R.layout.form);
         
         cache = new CacheManager(getCacheDir());
-        cities = (HashMap<String, ArrayList<City>>) cache.loadFromCache("cities");
-
-        ((Spinner)findViewById(R.id.city)).setEnabled(false);
-        
-        ArrayList<String> items = new ArrayList<String>();
-        items.add("Wybierz województwo");
-        states = (new StateFetcher()).fetch();
-        for (State state : states) {
-			items.add(state.name);
-		}
-        
-        Spinner statesSpinner = (Spinner)findViewById(R.id.state);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-        		android.R.layout.simple_spinner_item, items);
-        statesSpinner.setAdapter(adapter);
-        statesSpinner.setOnItemSelectedListener(new StatesSpinnerListener());
+   	 	cities = (HashMap<String, ArrayList<City>>) cache.loadFromCache("cities");
+   	 	if (null == cities) {
+   	 		cities = new HashMap<String, ArrayList<City>>();
+   	 	}
+        initStateSpinner();
 
         attachCheckboxListeners();
         findViewById(R.id.buttonShowMeteo).setOnClickListener(
         		new ShowMeteoButtonListener());
         
-        ChoosenForecast choosenForecast = (ChoosenForecast) cache.loadFromCache("forecast");
+        choosenForecast = (ChoosenForecast) cache.loadFromCache("forecast");
         if (choosenForecast != null) {
         	Intent intent = new Intent(this, ForecastActivity.class);
 			Bundle bundle = new Bundle();
@@ -69,12 +60,41 @@ public class MeteoappActivity extends Activity {
 	     	intent.putExtras(bundle);
 			startActivity(intent);
         }
-        
+        onCreateCalled = true;
     }
     
+    protected void initStateSpinner() {
+    	
+         ((Spinner)findViewById(R.id.city)).setEnabled(false);
+         
+         ArrayList<String> items = new ArrayList<String>();
+         items.add("Wybierz województwo");
+         states = (new StateFetcher()).fetch();
+         for (State state : states) {
+ 			items.add(state.name);
+ 		 }
+         
+         Spinner statesSpinner = (Spinner)findViewById(R.id.state);
+         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+         		android.R.layout.simple_spinner_item, items);
+         statesSpinner.setAdapter(adapter);
+         statesSpinner.setOnItemSelectedListener(new StatesSpinnerListener());
+    }
 
-    
-
+    @Override
+    protected void onResume() {
+    	System.out.println("on resume, oncratecalled: " + onCreateCalled);
+    	if (!onCreateCalled && choosenForecast != null) {
+    		System.out.println("Choosen forecast for city " + choosenForecast.forecast.city.name + " state " + choosenForecast.forecast.city.state.name);
+    		Spinner statesSpinner = (Spinner)findViewById(R.id.state);
+    		
+    		statesSpinner.setSelection(
+    				((ArrayAdapter<String>) statesSpinner.getAdapter()).getPosition(choosenForecast.forecast.city.state.name));
+    		setSelectedTypes(choosenForecast.types);
+    	}
+    	onCreateCalled = false;
+    	super.onResume();
+    }
 
 	/**
      * Attaches checkboxes listener
@@ -132,7 +152,7 @@ public class MeteoappActivity extends Activity {
 				state = states.get(pos - 1);
 				System.out.println("Selected state: " + state.name);
 		        ((Spinner)findViewById(R.id.city)).setEnabled(false);
-				new FetchCitiesTask().execute(state);
+				new FetchCitiesTask(choosenForecast).execute(state);
 			}
 		}
 
@@ -150,40 +170,67 @@ public class MeteoappActivity extends Activity {
 			ArrayList<City> citiesInState = cities.get(state.name);
 			City city = citiesInState.get(((Spinner)findViewById(R.id.city)).getSelectedItemPosition());
 			
-			new FetchForecastTask(MeteoappActivity.this, getCacheDir(), getSelectedTypes(), cache).execute(city);
+			new FetchForecastTask(MeteoappActivity.this, getSelectedTypes(), cache).execute(city);
+		}
+	}
+	
+	protected ArrayList<String> getSelectedTypes() {
+		
+		ArrayList<String> types = new ArrayList<String>();
+		if (((CheckBox)findViewById(R.id.checkBoxTemperature)).isChecked()) {
+			types.add(Forecast.TEMPERATURE);
+		}
+		if (((CheckBox)findViewById(R.id.checkBoxRain)).isChecked()) {
+			types.add(Forecast.RAIN);
+		}
+		if (((CheckBox)findViewById(R.id.checkBoxPressure)).isChecked()) {
+			types.add(Forecast.PRESSURE);
+		}
+		if (((CheckBox)findViewById(R.id.checkBoxWind)).isChecked()) {
+			types.add(Forecast.WIND);
+		}
+		if (((CheckBox)findViewById(R.id.checkBoxVisibility)).isChecked()) {
+			types.add(Forecast.VISIBILITY);
+		}
+		if (((CheckBox)findViewById(R.id.checkBoxClouds)).isChecked()) {
+			types.add(Forecast.CLOUDS);
 		}
 		
-		protected ArrayList<String> getSelectedTypes() {
-			
-			ArrayList<String> types = new ArrayList<String>();
-			if (((CheckBox)findViewById(R.id.checkBoxTemperature)).isChecked()) {
-				types.add(Forecast.TEMPERATURE);
-			}
-			if (((CheckBox)findViewById(R.id.checkBoxRain)).isChecked()) {
-				types.add(Forecast.RAIN);
-			}
-			if (((CheckBox)findViewById(R.id.checkBoxPressure)).isChecked()) {
-				types.add(Forecast.PRESSURE);
-			}
-			if (((CheckBox)findViewById(R.id.checkBoxWind)).isChecked()) {
-				types.add(Forecast.WIND);
-			}
-			if (((CheckBox)findViewById(R.id.checkBoxVisibility)).isChecked()) {
-				types.add(Forecast.VISIBILITY);
-			}
-			if (((CheckBox)findViewById(R.id.checkBoxClouds)).isChecked()) {
-				types.add(Forecast.CLOUDS);
-			}
-			
-			return types;
-		}
+		return types;
+	}
+	
+	protected void setSelectedTypes(ArrayList<String> types) {
 		
+		if (types.contains(Forecast.TEMPERATURE)) {
+			((CheckBox)findViewById(R.id.checkBoxTemperature)).setChecked(true);
+		}
+		if (types.contains(Forecast.RAIN)) {
+			((CheckBox)findViewById(R.id.checkBoxRain)).setChecked(true);
+		}
+		if (types.contains(Forecast.PRESSURE)) {
+			((CheckBox)findViewById(R.id.checkBoxPressure)).setChecked(true);
+		}
+		if (types.contains(Forecast.WIND)) {
+			((CheckBox)findViewById(R.id.checkBoxWind)).setChecked(true);
+		}
+		if (types.contains(Forecast.VISIBILITY)) {
+			((CheckBox)findViewById(R.id.checkBoxVisibility)).setChecked(true);
+		}
+		if (types.contains(Forecast.CLOUDS)) {
+			((CheckBox)findViewById(R.id.checkBoxClouds)).setChecked(true);
+		}
 	}
 	
 	private class FetchCitiesTask extends AsyncTask<State, Void, ArrayList<City>> {
 
 		protected ProgressDialog progressDialog;
 		protected FetcherException exception;
+		protected ChoosenForecast choosenForecast;
+		
+		public FetchCitiesTask(ChoosenForecast choosenForecast) {
+			
+			this.choosenForecast = choosenForecast;
+		}
 		
 		@Override
 		protected ArrayList<City> doInBackground(State... states) {
@@ -226,6 +273,9 @@ public class MeteoappActivity extends Activity {
 		        ((Spinner)findViewById(R.id.city)).setEnabled(true);
 		        setButtonEnabledIfAllCriteriaSatisfied(false);
 		        
+		        if (choosenForecast != null && choosenForecast.forecast.city.state.symbol.equals(cities.get(0).state.symbol)) {
+		    		citiesSpinner.setSelection(items.indexOf(choosenForecast.forecast.city.name));
+		        }
 			} else {
 				new ExceptionHandler(MeteoappActivity.this, exception).handle();
 			}

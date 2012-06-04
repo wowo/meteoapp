@@ -56,8 +56,8 @@ public class ForecastActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch (item.getItemId()) {
 	    	case R.id.refresh:
-	    		new FetchForecastTask(ForecastActivity.this, getCacheDir(),
-	    				choosenForecast.types,new CacheManager(getCacheDir())).execute(choosenForecast.forecast.city);
+	    		new FetchForecastTask(ForecastActivity.this, choosenForecast.types,
+	    				new CacheManager(getCacheDir())).execute(choosenForecast.forecast.city);
 	    		return true;
 	    	case R.id.form:
 	    		finish();

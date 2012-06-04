@@ -21,6 +21,11 @@ public class CacheManager {
 		this.defaultCacheDir = defaultCacheDir;
 	}
 	
+	public File getDefaultCacheDir() {
+		
+		return defaultCacheDir;
+	}
+	
 	public Object loadFromCache(String target) {
     	
     	File cacheFile = getCacheFile(target); 
