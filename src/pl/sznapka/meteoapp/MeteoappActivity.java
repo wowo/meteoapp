@@ -166,11 +166,15 @@ public class MeteoappActivity extends Activity {
 		@Override
 		public void onClick(View button) {
 			
-			State state = states.get(((Spinner)findViewById(R.id.state)).getSelectedItemPosition() - 1);
-			ArrayList<City> citiesInState = cities.get(state.name);
-			City city = citiesInState.get(((Spinner)findViewById(R.id.city)).getSelectedItemPosition());
-			
-			new FetchForecastTask(MeteoappActivity.this, getSelectedTypes(), cache).execute(city);
+			Spinner citiesSpinner = (Spinner) findViewById(R.id.city);
+			if (citiesSpinner.isEnabled()) {
+				State state = states.get(((Spinner)findViewById(R.id.state)).getSelectedItemPosition() - 1);
+				ArrayList<City> citiesInState = cities.get(state.name);
+				City city = citiesInState.get(citiesSpinner.getSelectedItemPosition());
+				new FetchForecastTask(MeteoappActivity.this, getSelectedTypes(), cache).execute(city);
+			} else {
+				findViewById(R.id.buttonShowMeteo).setEnabled(false);
+			}
 		}
 	}
 	
