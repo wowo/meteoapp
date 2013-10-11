@@ -4,10 +4,8 @@ Android Java application which fetches an meteograms from new.meteo.pl, cuts the
 
 ## Screenshots
 
-![forecasts view](docs/meteoapp-screen-main.png)
-
-![settings view](docs/meteoapp-screen-settings.png)
-
+![forecasts view](docs/meteoapp-screen-main.png) ,
+![settings view](docs/meteoapp-screen-settings.png) ,
 ![credits view](docs/meteoapp-screen-credits.png)
 
 ## Credits
